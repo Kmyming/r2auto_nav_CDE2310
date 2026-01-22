@@ -31,27 +31,30 @@ class Scanner(Node):
         self.subscription  # prevent unused variable warning
 
     def listener_callback(self, msg):
-        # create numpy array
-        laser_range = np.array(msg.ranges)
-        # replace 0's with nan
-        laser_range[laser_range==0] = np.nan
-        # find index with minimum value
-        lr2i = np.nanargmin(laser_range)
+        # convert ranges to numpy and ignore zero (invalid) readings
+        laser_range = np.array(msg.ranges, dtype=float)
+        laser_range[laser_range == 0.0] = np.nan
 
-        # log the info
-        self.get_logger().info('Shortest distance at %i degrees' % 0.7*lr2i)
+        if np.all(np.isnan(laser_range)):
+            self.get_logger().warn('Laser scan contains no valid range data')
+            return
+
+        closest_index = int(np.nanargmin(laser_range))
+        closest_distance = float(laser_range[closest_index])
+
+        # compute the angle in degrees using LaserScan metadata instead of a hard-coded scale
+        angle_rad = msg.angle_min + closest_index * msg.angle_increment
+        angle_deg = float(np.rad2deg(angle_rad))
+
+        self.get_logger().info(
+            f'Closest object {closest_distance:.3f} m at {angle_deg:.1f} deg (index {closest_index})'
+        )
 
 
 def main(args=None):
     rclpy.init(args=args)
-
     scanner = Scanner()
-
     rclpy.spin(scanner)
-
-    # Destroy the node explicitly
-    # (optional - otherwise it will be done automatically
-    # when the garbage collector destroys the node object)
     scanner.destroy_node()
     rclpy.shutdown()
 
