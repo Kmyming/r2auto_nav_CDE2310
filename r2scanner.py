@@ -39,7 +39,7 @@ class Scanner(Node):
         lr2i = np.nanargmin(laser_range)
 
         # log the info
-        self.get_logger().info('Shortest distance at %i degrees' % lr2i)
+        self.get_logger().info('Shortest distance at %i degrees' % 0.7*lr2i)
 
 
 def main(args=None):
